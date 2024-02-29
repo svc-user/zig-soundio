@@ -145,8 +145,8 @@ pub const OutputStream = struct {
         try check(c.soundio_outstream_start(self.ptr));
     }
 
-    pub fn pause(self: *OutputStream) !void {
-        try check(c.soundio_outstream_pause(self.ptr, true));
+    pub fn pause(self: *OutputStream, pausee: bool) !void {
+        try check(c.soundio_outstream_pause(self.ptr, pausee));
     }
 
     fn writeCallback(self: *OutputStream, frame_count_min: c_int, frame_count_max: c_int) void {
