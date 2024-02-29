@@ -19,7 +19,7 @@ pub fn link(b: *std.Build, exe: *std.build.LibExeObjStep) void {
     exe.linkLibrary(lib);
 
     exe.linkLibC();
-    exe.addIncludePath(root() ++ "/libsoundio");
+    exe.addIncludePath(.{ .path = root() ++ "/libsoundio" });
 
     if (target.isWindows()) {
         exe.linkSystemLibrary("ole32");
@@ -27,7 +27,7 @@ pub fn link(b: *std.Build, exe: *std.build.LibExeObjStep) void {
         const framework_path = getFrameworkPath(b.allocator);
         defer b.allocator.free(framework_path);
 
-        exe.addFrameworkPath(framework_path);
+        exe.addFrameworkPath(.{ .path = framework_path });
 
         exe.linkFramework("CoreFoundation");
         exe.linkFramework("CoreAudio");
@@ -73,8 +73,8 @@ fn buildC(b: *std.Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode
     });
 
     lib.linkLibC();
-    lib.addIncludePath(root() ++ "/libsoundio");
-    lib.addIncludePath(root() ++ "/libsoundio/src");
+    lib.addIncludePath(.{ .path = root() ++ "/libsoundio" });
+    lib.addIncludePath(.{ .path = root() ++ "/libsoundio/src" });
     lib.addCSourceFiles(&csources, &cflags);
 
     lib.defineCMacro("ZIG_BUILD", null);
@@ -85,18 +85,18 @@ fn buildC(b: *std.Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode
 
     if (target.isWindows()) {
         lib.defineCMacro("SOUNDIO_HAVE_WASAPI", null);
-        lib.addCSourceFile(root() ++ "/libsoundio/src/wasapi.c", &cflags);
+        lib.addCSourceFile(.{ .file = .{ .path = root() ++ "/libsoundio/src/wasapi.c" }, .flags = &cflags });
     } else if (target.isDarwin()) {
         const framework_path = getFrameworkPath(b.allocator);
-        b.allocator.free(framework_path);
-        lib.addFrameworkPath(framework_path);
+        defer b.allocator.free(framework_path);
+        lib.addFrameworkPath(.{ .path = framework_path });
         lib.defineCMacro("SOUNDIO_HAVE_COREAUDIO", null);
-        lib.addCSourceFile(root() ++ "/libsoundio/src/coreaudio.c", &cflags);
+        lib.addCSourceFile(.{ .file = .{ .path = root() ++ "/libsoundio/src/coreaudio.c" }, .flags = &cflags });
     } else {
         std.debug.panic("unsupported target: only Windows and macOS currently supported", .{});
     }
 
-    lib.install();
+    b.installArtifact(lib);
     return lib;
 }
 
@@ -142,9 +142,9 @@ pub fn build(b: *std.Build) void {
         demo.addModule("wav", wav_mod);
         demo.addModule("soundio", soundio_mod);
         link(b, demo);
-        demo.install();
+        b.installArtifact(demo);
 
-        const cmd = demo.run();
+        const cmd = b.addRunArtifact(demo);
         cmd.step.dependOn(b.getInstallStep());
 
         if (b.args) |args| {

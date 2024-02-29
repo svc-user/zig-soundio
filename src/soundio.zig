@@ -85,12 +85,12 @@ pub const SoundIo = struct {
         const index = c.soundio_default_output_device_index(self.ptr);
         if (index < 0)
             return error.NoSuchDevice;
-        return @intCast(usize, index);
+        return @intCast(index);
     }
 
     pub fn createOutputStream(self: *SoundIo, alloc: std.mem.Allocator, options: OutputStreamOptions) Error!*OutputStream {
         const index = if (options.device_index) |i| i else try self.default_output_device_index();
-        const device = c.soundio_get_output_device(self.ptr, @intCast(c_int, index));
+        const device = c.soundio_get_output_device(self.ptr, @as(c_int, @intCast(index)));
         if (device == null)
             return error.NoSuchDevice;
         errdefer c.soundio_device_unref(device);
@@ -129,7 +129,7 @@ pub const OutputStream = struct {
             .mono => c.soundio_channel_layout_get_builtin(c.SoundIoChannelLayoutIdMono).*,
             .stereo => c.soundio_channel_layout_get_builtin(c.SoundIoChannelLayoutIdStereo).*,
         };
-        self.ptr.*.sample_rate = @intCast(c_int, options.sample_rate);
+        self.ptr.*.sample_rate = @as(c_int, @intCast(options.sample_rate));
 
         try check(c.soundio_outstream_open(self.ptr));
         try check(self.ptr.*.layout_error);
@@ -148,7 +148,7 @@ pub const OutputStream = struct {
     fn writeCallback(self: *OutputStream, frame_count_min: c_int, frame_count_max: c_int) void {
         _ = frame_count_min;
 
-        const num_channels = @intCast(usize, self.ptr.*.layout.channel_count);
+        const num_channels: usize = @intCast(self.ptr.*.layout.channel_count);
         var channels: [2]Channel = undefined;
         var buffer = Buffer{ .channels = channels[0..num_channels] };
 
@@ -163,15 +163,15 @@ pub const OutputStream = struct {
 
             var i: usize = 0;
             while (i < num_channels) : (i += 1) {
-                const step = @intCast(usize, areas[i].step) / 4;
+                const step: usize = @as(usize, @intCast(areas[i].step)) / 4;
                 channels[i].step = step;
-                channels[i].data = @ptrCast(
+                channels[i].data = @as(
                     [*]f32,
-                    @alignCast(@alignOf(f32), areas[i].ptr),
-                )[0..(@intCast(usize, frame_count) * step)];
+                    @ptrCast(@alignCast(areas[i].ptr)),
+                )[0..(@as(usize, @intCast(frame_count)) * step)];
             }
 
-            self.write_callback(self.arg, @intCast(usize, frame_count), &buffer);
+            self.write_callback(self.arg, @as(usize, @intCast(frame_count)), &buffer);
             check(c.soundio_outstream_end_write(self.ptr)) catch |err|
                 std.debug.panic("soundio_oustream_end_write error: {}", .{err});
         }
@@ -179,7 +179,8 @@ pub const OutputStream = struct {
 };
 
 export fn dispatchWriteCallback(outstream: [*c]c.SoundIoOutStream, frame_count_min: c_int, frame_count_max: c_int) callconv(.C) void {
-    var self = @ptrCast(*OutputStream, @alignCast(@alignOf(OutputStream), outstream.*.userdata));
+    // var self: *OutputStream = @ptrCast(@alignCast(@alignOf(OutputStream), outstream.*.userdata));
+    var self: *OutputStream = @ptrCast(@alignCast(outstream.*.userdata));
     self.writeCallback(frame_count_min, frame_count_max);
 }
 

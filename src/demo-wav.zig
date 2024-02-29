@@ -54,13 +54,13 @@ fn callback(arg: ?*anyopaque, num_frames: usize, dest: *soundio.Buffer) void {
         return; // Prevent race with decoder destroy.
 
     std.debug.assert(arg != null);
-    var decoder = @ptrCast(*DecoderType, @alignCast(@alignOf(DecoderType), arg.?));
+    var decoder: *DecoderType = @ptrCast(@alignCast(arg.?));
     const num_channels = decoder.channels(); // Already checked against output channels.
 
     var src: [128]f32 = undefined;
     var frame: usize = 0;
     while (frame < num_frames) {
-        const samples_to_read = std.math.min((num_frames - frame) * num_channels, src.len);
+        const samples_to_read = @min((num_frames - frame) * num_channels, src.len);
         const samples_read = decoder.read(
             f32,
             src[0..samples_to_read],

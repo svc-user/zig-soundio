@@ -30,7 +30,7 @@ fn callback(arg: ?*anyopaque, num_frames: usize, buffer: *soundio.Buffer) void {
     _ = arg;
 
     const freq: f32 = 261.63; // Middle C.
-    const sample_rate_f = @intToFloat(f32, sample_rate);
+    const sample_rate_f: f32 = @floatFromInt(sample_rate);
     const amplitude: f32 = 0.4; // Not too loud.
 
     var frame: usize = 0;

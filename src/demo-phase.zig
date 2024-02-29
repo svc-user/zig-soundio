@@ -19,7 +19,7 @@ const Saw = struct {
 };
 
 const sample_rate: usize = 48000;
-const sample_rate_f = @intToFloat(f32, sample_rate);
+const sample_rate_f: f32 = @floatFromInt(sample_rate);
 
 var saw_l = Saw{ .sample_rate = sample_rate_f, .freq = 128.813, .phase = 0.0 };
 var saw_r = Saw{ .sample_rate = sample_rate_f, .freq = 130.813, .phase = 1.2 };
